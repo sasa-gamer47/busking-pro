@@ -34,7 +34,7 @@ export default function Home() {
                 <div className="w-1/2 h-full flex flex-col justify-center items-center p-4">
                   <div className="w-full flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Scalette recenti</h2>
-                    <p className="text-sky-600 font-semibold text-lg transition duration-150 hover:text-sky-400 cursor-pointer">Vedi tutto</p>
+                    <p className="text-orange-600 font-semibold text-lg transition duration-150 hover:text-orange-500 cursor-pointer">Vedi tutto</p>
                   </div>
                   <div className="w-full h-full flex flex-col gap-y-4 justify-start items-baseline mt-4">
                     <SetlistCard />
@@ -45,7 +45,7 @@ export default function Home() {
                 <div className="w-1/2 h-full p-4">
                   <div className="w-full flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Live Checklist</h2>
-                    <p className="text-sky-600 font-semibold text-lg transition duration-150 hover:text-sky-400 cursor-pointer">
+                    <p className="text-orange-600 font-semibold text-lg transition duration-150 hover:text-orange-500 cursor-pointer">
                       <Plus size={35} strokeWidth={3} />
                     </p>
                   </div>

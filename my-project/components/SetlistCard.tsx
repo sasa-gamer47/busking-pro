@@ -17,7 +17,7 @@ const SetlistCard = () => {
             <div className="w-1/2 h-full flex items-center justify-center p-2">
             <Button className='text-lg font-semibold w-full p-6 bg-orange-600 transition duration-200 hover:-translate-y-1 hover:bg-orange-700 cursor-pointer'>
                 <Play />
-                Button
+                Avvia
             </Button>
 
             </div>
