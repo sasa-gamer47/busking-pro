@@ -42,3 +42,11 @@ export interface Setlist {
   created_at: string
   setlist_songs: SetlistSongJoin[]
 }
+
+export interface Todo {
+  id: string
+  user_id: string
+  text: string
+  is_done: boolean
+  created_at: string
+}

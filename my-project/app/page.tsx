@@ -10,6 +10,7 @@ import { Plus } from "lucide-react";
 import CheckListPanel from "@/components/CheckListPanel";
 import { getDashboardStats, getRecentSetlists, getRecentSongs } from "@/lib/utils/actions"
 import { Setlist } from "@/lib/utils/supabase/types";
+import AddChecklistForm from "@/components/AddChecklistForm";
 
 export default async function Home() {
 
@@ -50,9 +51,10 @@ export default async function Home() {
                 <div className="w-1/2 h-full p-4">
                   <div className="w-full flex justify-between items-center">
                     <h2 className="text-2xl font-bold">Live Checklist</h2>
-                    <p className="text-orange-600 font-semibold text-lg transition duration-150 hover:text-orange-500 cursor-pointer">
+                    <AddChecklistForm />
+                    {/* <p className="text-orange-600 font-semibold text-lg transition duration-150 hover:text-orange-500 cursor-pointer">
                       <Plus size={35} strokeWidth={3} />
-                    </p>
+                    </p> */}
                   </div>
                   <div className="w-full h-full flex flex-col gap-y-4 justify-start items-baseline mt-4">
                     <CheckListPanel />
@@ -70,6 +72,9 @@ export default async function Home() {
 
 
       </div>
+      {/* fixed voerlay modals */}
+
+
     </div>
   );
 }

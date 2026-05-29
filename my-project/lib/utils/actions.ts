@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/utils/supabase/server"
 import { Setlist } from "./supabase/types"
+import { Todo } from "@/lib/utils/supabase/types"
 
 /**
  * Recupera i dati riassuntivi per le statistiche della Dashboard
@@ -21,6 +22,7 @@ export async function getDashboardStats() {
 
   if (songsError || setlistsError) {
     console.error("Errore nel recupero delle statistiche:", songsError || setlistsError)
+    console.log(songsError)
     return { songsCount: 0, setlistsCount: 0 }
   }
 
@@ -85,4 +87,97 @@ export async function getRecentSetlists(limit = 3): Promise<Setlist[]> {
   // Trucco magico: diciamo a TypeScript di fidarsi perché la query select 
   // combacia perfettamente con l'interfaccia strutturata in types.ts
   return data as unknown as Setlist[]
+}
+
+
+
+/**
+ * Recupera tutti i todos dell'utente loggato
+ */
+export async function getTodos(limit: number = 3): Promise<Todo[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("todos")
+    .select("*")
+    .order("created_at", { ascending: true })
+    .limit(limit)
+
+  if (error) {
+    console.error("Errore nel recupero dei todos:", error)
+    return []
+  }
+
+  return data as Todo[]
+}
+
+/**
+ * Crea un nuovo todo
+ */
+export async function addTodo(text: string) {
+  const supabase = await createClient()
+
+  // 1. Recuperiamo l'utente attualmente loggato lato server
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    console.error("Tentativo di aggiunta todo senza utente autenticato")
+    return { success: false, error: "Utente non autenticato" }
+  }
+
+  // 2. Inseriamo la riga includendo obbligatoriamente lo user_id
+  const { data, error } = await supabase
+    .from("todos")
+    .insert([
+      { 
+        text: text,
+        user_id: user.id // <-- QUESTO SBLOCCA LA POLICY RLS!
+      }
+    ])
+    .select()
+
+  if (error) {
+    console.error("Errore nell'aggiunta del todo:", error)
+    return { success: false, error }
+  }
+
+  return { success: true, data }
+}
+
+/**
+ * Aggiorna lo stato is_done di un todo
+ */
+export async function toggleTodoStatus(id: string, isDone: boolean) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from("todos")
+    .update({ is_done: isDone })
+    .eq("id", id)
+
+  if (error) {
+    console.error("Errore nell'aggiornamento del todo:", error)
+    return { success: false, error }
+  }
+
+  return { success: true }
+}
+
+/**
+ * Elimina un todo
+ */
+export async function deleteTodo(id: string) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from("todos")
+    .delete()
+    .eq("id", id)
+
+  if (error) {
+    console.error("Errore nell'eliminazione del todo:", error)
+    return { success: false, error }
+  }
+
+  return { success: true }
 }
