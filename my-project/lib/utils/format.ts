@@ -44,3 +44,19 @@ export function formatMonthYear(dateString: string | Date): string {
   // Mette la prima lettera maiuscola (es. "Maggio 2026")
   return formatted.charAt(0).toUpperCase() + formatted.slice(1)
 }
+
+/**
+ * Trasforma i secondi in formato MM:SS (es. 225 secondi -> 03:45)
+ */
+export function formatDuration(seconds: number): string {
+  if (!seconds || seconds <= 0) return "00:00"
+  
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  
+  // padStart aggiunge lo zero iniziale se il numero è a una sola cifra
+  const formattedMinutes = String(minutes).padStart(2, "0")
+  const formattedSeconds = String(remainingSeconds).padStart(2, "0")
+  
+  return `${formattedMinutes}:${formattedSeconds}`
+}

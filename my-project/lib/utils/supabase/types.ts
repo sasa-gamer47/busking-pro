@@ -26,6 +26,7 @@ export interface Song {
   artist: string | null
   original_key: string
   content: SongSection[] // <-- ORA È IL TUO JSONB REALE E RIGIDO!
+  duration: number
   created_at: string
 }
 
@@ -49,4 +50,24 @@ export interface Todo {
   text: string
   is_done: boolean
   created_at: string
+}
+
+export interface SetlistSongRow {
+  position: number
+  songs: Song | null
+}
+
+export interface SongSegment {
+  text: string
+  chord: string | null
+}
+
+export interface SongLine {
+  segments: SongSegment[]
+}
+
+export interface SongSection {
+  verseType: string
+  label: string
+  lines: SongLine[]
 }

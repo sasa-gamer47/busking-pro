@@ -60,7 +60,9 @@ const Sidebar = async () => {
         <div className=" bg-zinc-800 absolute right-0 w-0.5 h-full"></div>
 
       <div className="w-full text-4xl font-bold flex justify-center items-center py-4 h-20  absolute top-0">
-        BUSKING PRO
+        <Link href="/" className='cursor-pointer'>
+          BUSKING PRO
+        </Link>
       </div>
       <div className="w-full flex justify-center items-start py-3  absolute top-20">
           <Input placeholder='Search your songs...' className='w-5/6 outline-none bg-zinc-900 px-6 py-6  border-none' />

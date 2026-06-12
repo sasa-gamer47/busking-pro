@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button"
 import { Play } from 'lucide-react'
 import { Setlist } from '@/lib/utils/supabase/types'
 import { formatLongDate } from '@/lib/utils/format'
+import Link from 'next/link'
 
 const SetlistCard = ({ setlist } : { setlist: Setlist}) => {
+
+
   return (
     
     <Card className='w-full p-4 text-zinc-300 flex flex-col justify-content items-content bg-zinc-950 border-2 border-zinc-800'>
@@ -17,10 +20,12 @@ const SetlistCard = ({ setlist } : { setlist: Setlist}) => {
                 {setlist.setlist_songs.length} | creato {formatLongDate(setlist.created_at)} fa
             </div>
             <div className="w-1/2 h-full flex items-center justify-center p-2">
-            <Button className='text-lg font-semibold w-full p-6 bg-orange-600 transition duration-200 hover:-translate-y-1 hover:bg-orange-700 cursor-pointer'>
-                <Play />
-                Avvia
-            </Button>
+                <Link href={`/setlists/${setlist.id}`}>
+                    <Button className='text-lg font-semibold w-full p-6 bg-orange-600 transition duration-200 hover:-translate-y-1 hover:bg-orange-700 cursor-pointer'>
+                        <Play />
+                        Avvia
+                    </Button>
+                </Link>
             </div>
         </div>
     </Card>

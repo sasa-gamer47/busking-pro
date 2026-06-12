@@ -1,7 +1,7 @@
 "use server" // Rende tutte le funzioni di questo file delle Server Actions esclusive del server
 
 import { createClient } from "@/lib/utils/supabase/server"
-import { Setlist } from "./supabase/types"
+import { Setlist, SetlistSongRow, Song } from "./supabase/types"
 import { Todo } from "@/lib/utils/supabase/types"
 
 /**
@@ -89,7 +89,74 @@ export async function getRecentSetlists(limit = 3): Promise<Setlist[]> {
   return data as unknown as Setlist[]
 }
 
+/**
+ * Recupera i dettagli di una singola scaletta tramite il suo ID
+ */
+export async function getSetlistById(id: string) {
+  const supabase = await createClient()
 
+  const { data, error } = await supabase
+    .from("setlists")
+    .select("*")
+    .eq("id", id)
+    .single() // Diciamo a Supabase che ci aspettiamo un solo oggetto, non un array
+
+  if (error) {
+    console.error(`Errore nel recupero della scaletta ${id}:`, error.message)
+    return null
+  }
+
+  return data
+}
+
+/**
+ * Recupera l'elenco piatto delle canzoni di una scaletta, ordinate per posizione
+ */
+export async function getSongsBySetlistId(setlistId: string): Promise<(Song & { position: number })[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("setlist_songs")
+    .select(`
+      position,
+      songs (
+        id,
+        user_id,
+        title,
+        artist,
+        original_key,
+        content,
+        duration,
+        created_at
+      )
+    `)
+    .eq("setlist_id", setlistId)
+    .order("position", { ascending: true })
+
+  if (error) {
+    console.error("Errore nel recupero delle canzoni della scaletta:", error.message)
+    return []
+  }
+
+  if (!data) return []
+
+  // Castiamo esplicitamente 'data' per bypassare l'errore del parser dei tipi di Supabase
+  const typedData = data as unknown as SetlistSongRow[]
+
+  return typedData
+    .filter((item) => item.songs !== null) // Rimuove eventuali record corrotti se una canzone è stata eliminata
+    .map((item) => ({
+      id: item.songs!.id,
+      user_id: item.songs!.user_id,
+      title: item.songs!.title,
+      artist: item.songs!.artist,
+      original_key: item.songs!.original_key,
+      content: item.songs!.content,
+      duration: item.songs!.duration, // Ora è un numero (secondi) che arriva dal DB
+      created_at: item.songs!.created_at,
+      position: item.position // Estraiamo la posizione dalla tabella ponte e la uniamo alla canzone
+    }))
+}
 
 /**
  * Recupera tutti i todos dell'utente loggato
@@ -180,4 +247,35 @@ export async function deleteTodo(id: string) {
   }
 
   return { success: true }
+}
+
+
+/**
+ * Recupera tutti i dettagli di una singola canzone tramite il suo ID
+ */
+export async function getSongById(id: string): Promise<Song | null> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("songs")
+    .select(`
+      id,
+      user_id,
+      title,
+      artist,
+      original_key,
+      content,
+      duration,
+      created_at
+    `)
+    .eq("id", id)
+    .single() // Ci aspettiamo un solo record
+
+  if (error) {
+    console.error(`Errore nel recupero della canzone ${id}:`, error.message)
+    return null
+  }
+
+  // Castiamo il risultato per assicurare a TypeScript che rispetti l'interfaccia Song
+  return data as unknown as Song
 }

@@ -2,13 +2,12 @@ import DetailsPanel from "@/components/DetailsPanel";
 import HomeStatCard from "@/components/HomeStatCard";
 import SetlistCard from "@/components/SetlistCard";
 import Topbar from "@/components/Topbar";
-import { Plus } from "lucide-react";
 // import { Card } from "@/components/ui/card";
 // import { Checkbox } from "@/components/ui/checkbox"
 // import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 // import ChecklistItem from "@/components/CheckListItem";
 import CheckListPanel from "@/components/CheckListPanel";
-import { getDashboardStats, getRecentSetlists, getRecentSongs } from "@/lib/utils/actions"
+import { getDashboardStats, getRecentSetlists } from "@/lib/utils/actions"
 import { Setlist } from "@/lib/utils/supabase/types";
 import AddChecklistForm from "@/components/AddChecklistForm";
 
