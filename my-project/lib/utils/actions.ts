@@ -1,7 +1,7 @@
 "use server" // Rende tutte le funzioni di questo file delle Server Actions esclusive del server
 
 import { createClient } from "@/lib/utils/supabase/server"
-import { Setlist, SetlistSongRow, Song } from "./supabase/types"
+import { Setlist, SetlistSongItem, SetlistSongPreferences, SetlistSongRow, Song } from "./supabase/types"
 import { Todo } from "@/lib/utils/supabase/types"
 
 /**
@@ -278,4 +278,119 @@ export async function getSongById(id: string): Promise<Song | null> {
 
   // Castiamo il risultato per assicurare a TypeScript che rispetti l'interfaccia Song
   return data as unknown as Song
+}
+
+
+export async function updateSongPreferences(
+  setlistId: string,
+  songId: string, 
+  transpose: number, 
+  isSimplified: boolean
+) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('setlist_songs')
+    .update({ 
+      transpose: transpose, 
+      is_simplified: isSimplified 
+    })
+    .eq('setlist_id', setlistId)
+    .eq('song_id', songId);
+
+  if (error) {
+    console.error("Errore durante il salvataggio delle preferenze:", error.message);
+    return { success: false, error };
+  }
+
+  return { success: true, data };
+}
+
+
+
+
+export async function getSetlistSongPreferences(
+  setlistId: string,
+  songId: string
+): Promise<{ success: boolean; data?: SetlistSongPreferences; error?: string }> {
+  const supabase = await createClient();
+
+  // 1. Controllo di sicurezza: Recupera l'utente autenticato dalla sessione
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "Non autorizzato. Effettua il login." };
+  }
+
+  // 2. Interroga setlist_songs verificando la proprietà della setlist tramite l'user_id dello user loggato
+  const { data, error } = await supabase
+    .from("setlist_songs")
+    .select(`
+      transpose,
+      is_simplified,
+      position,
+      setlists!inner(user_id)
+    `)
+    .eq("setlist_id", setlistId)
+    .eq("song_id", songId)
+    .eq("setlists.user_id", user.id) // Protezione IDOR: la setlist deve appartenere all'utente corrente
+    .maybeSingle(); // Ritorna un oggetto singolo o null se non trova nulla
+
+  if (error) {
+    console.error("Errore nel recupero delle preferenze:", error.message);
+    return { success: false, error: "Errore interno del database." };
+  }
+
+  if (!data) {
+    return { success: false, error: "Nessuna preferenza trovata per questa canzone in questa scaletta." };
+  }
+
+  // Rimuoviamo il nodo 'setlists' aggiunto dalla inner join per pulire l'output
+  const { setlists, ...preferences } = data;
+
+  return {
+    success: true,
+    data: preferences as SetlistSongPreferences,
+  };
+}
+
+export async function getSongsFromSetlist(
+  setlistId: string
+): Promise<{ success: boolean; data?: SetlistSongItem[]; error?: string }> {
+  const supabase = await createClient();
+
+  // 1. Controllo di sicurezza: recupera l'utente autenticato
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return { success: false, error: "Non autorizzato. Effettua il login." };
+  }
+
+  // 2. Recupera tutte le canzoni della scaletta ordinate per posizione
+  const { data, error } = await supabase
+    .from("setlist_songs")
+    .select(`
+      song_id,
+      position,
+      transpose,
+      is_simplified,
+      setlists!inner(user_id),
+      songs(title, artist, duration)
+    `)
+    .eq("setlist_id", setlistId)
+    .eq("setlists.user_id", user.id) // Sicurezza: verifica che la scaletta sia dell'utente loggato
+    .order("position", { ascending: true }); // Ordina i brani per l'esecuzione live
+
+  if (error) {
+    console.error("Errore nel recupero dei brani della scaletta:", error.message);
+    return { success: false, error: "Errore durante il recupero della scaletta." };
+  }
+
+  // Puliamo l'output rimuovendo l'oggetto di join 'setlists' che è servito solo per il controllo user_id
+  const cleanedData = data.map(({ setlists, ...rest }) => rest) as unknown as SetlistSongItem[];
+
+  return {
+    success: true,
+    data: cleanedData,
+  };
 }

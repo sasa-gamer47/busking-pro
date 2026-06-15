@@ -71,3 +71,22 @@ export interface SongSection {
   label: string
   lines: SongLine[]
 }
+
+
+export interface SetlistSongPreferences {
+  transpose: number;
+  is_simplified: boolean;
+  position: number;
+}
+
+export interface SetlistSongItem {
+  song_id: string;
+  position: number;
+  transpose: number;
+  is_simplified: boolean;
+  songs: {
+    title: string;
+    artist: string;
+    duration: number;
+  };
+}

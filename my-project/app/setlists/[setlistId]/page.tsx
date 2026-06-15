@@ -54,7 +54,7 @@ export default async function SetlistDetailPage({ params }: PageProps) {
                 <div className=" bg-zinc-800 h-0.5 w-full"></div>
                 <div className="w-full h-fit overflow-y-auto gap-y-4 flex flex-col justify-center items-center">
                     {songs.map((song, index) => (
-                        <Link href={`/songs/${song.id}`} key={index} className="w-full h-fit p-4 flex justify-between items-center bg-zinc-950 rounded-lg border-2 border-zinc-800 transition duration-200 hover:bg-zinc-800 hover:cursor-pointer">
+                        <Link href={`/setlists/${setlistId}/songs/${song.id}`} key={index} className="w-full h-fit p-4 flex justify-between items-center bg-zinc-950 rounded-lg border-2 border-zinc-800 transition duration-200 hover:bg-zinc-800 hover:cursor-pointer">
                             <div className="w-1/12 h-full flex justify-center items-center">
                                 <div className="text-3xl font-semibold border border-zinc-700 bg-zinc-900 w-14 h-14 flex items-center justify-center">
                                     {song.position}
