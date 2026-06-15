@@ -26,6 +26,7 @@ export interface Song {
   artist: string | null
   original_key: string
   content: SongSection[] // <-- ORA È IL TUO JSONB REALE E RIGIDO!
+  bpm: number
   duration: number
   created_at: string
 }
@@ -82,6 +83,7 @@ export interface SetlistSongPreferences {
 export interface SetlistSongItem {
   song_id: string;
   position: number;
+  capo: number,
   transpose: number;
   is_simplified: boolean;
   songs: {

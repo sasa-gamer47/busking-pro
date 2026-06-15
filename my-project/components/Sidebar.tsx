@@ -72,7 +72,7 @@ const Sidebar = async () => {
           <p className='text-gray-500 font-semibold text-lg'>Le mie scalette</p>
           <div className="w-full flex flex-col justify-center items-center overflow-y-auto overflow-x-hidden">
             {recentSetlists.map((setlist: Setlist, index: number) => (
-              <SidebarSetlist key={index} title={setlist.title} />
+              <SidebarSetlist key={index}  id={setlist.id} title={setlist.title} />
             ))}                   
           </div>
         </div>
@@ -80,7 +80,7 @@ const Sidebar = async () => {
           <p className='text-gray-500 font-semibold text-lg'>Le mie canzoni</p>
           <div className="flex flex-col items-center justify-center w-full  overflow-y-auto">
             {recentSongs.map((song, index) => (
-              <SidebarSong key={index} title={song.title} artist={song.artist} />
+              <SidebarSong key={index} id={song.id} title={song.title} artist={song.artist} />
             ))} 
           </div>
         </div>

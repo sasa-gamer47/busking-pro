@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/utils/supabase/server"
 import { Setlist, SetlistSongItem, SetlistSongPreferences, SetlistSongRow, Song } from "./supabase/types"
 import { Todo } from "@/lib/utils/supabase/types"
+import { revalidatePath } from "next/cache"
 
 /**
  * Recupera i dati riassuntivi per le statistiche della Dashboard
@@ -127,6 +128,7 @@ export async function getSongsBySetlistId(setlistId: string): Promise<(Song & { 
         original_key,
         content,
         duration,
+        bpm,
         created_at
       )
     `)
@@ -153,6 +155,7 @@ export async function getSongsBySetlistId(setlistId: string): Promise<(Song & { 
       original_key: item.songs!.original_key,
       content: item.songs!.content,
       duration: item.songs!.duration, // Ora è un numero (secondi) che arriva dal DB
+      bpm: item.songs!.bpm,
       created_at: item.songs!.created_at,
       position: item.position // Estraiamo la posizione dalla tabella ponte e la uniamo alla canzone
     }))
@@ -289,6 +292,7 @@ export async function updateSongPreferences(
 ) {
   const supabase = await createClient()
 
+
   const { data, error } = await supabase
     .from('setlist_songs')
     .update({ 
@@ -326,6 +330,7 @@ export async function getSetlistSongPreferences(
   const { data, error } = await supabase
     .from("setlist_songs")
     .select(`
+      capo,
       transpose,
       is_simplified,
       position,
@@ -372,6 +377,7 @@ export async function getSongsFromSetlist(
     .select(`
       song_id,
       position,
+      capo,
       transpose,
       is_simplified,
       setlists!inner(user_id),
@@ -393,4 +399,119 @@ export async function getSongsFromSetlist(
     success: true,
     data: cleanedData,
   };
+}
+
+export async function getAvailableSongsForSetlist(setlistId: string) {
+  const supabase = await createClient();
+
+  // 1. Prendi l'utente loggato attuale
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // 2. Recupera gli ID di tutte le canzoni già associate a questa setlist
+  const { data: existingSongs } = await supabase
+    .from("setlist_songs")
+    .select("song_id")
+    .eq("setlist_id", setlistId);
+
+  const excludedIds = existingSongs?.map((item) => item.song_id) || [];
+
+  // 3. Estrai le canzoni dell'utente escludendo quelle già inserite
+  let query = supabase
+    .from("songs")
+    .select("id, title, artist, original_key")
+    .eq("user_id", user.id);
+
+  if (excludedIds.length > 0) {
+    query = query.not("id", "in", `(${excludedIds.join(",")})`);
+  }
+
+  const { data: songs, error } = await query.order("title", { ascending: true });
+
+  if (error) {
+    console.error("Errore nel recupero dei brani disponibili:", error);
+    return [];
+  }
+
+  return songs || [];
+}
+
+
+export async function addSongToSetlist(formData: {
+  setlistId: string
+  songId: string
+  position: number
+}) {
+  const supabase = await createClient()
+
+  // Controllo di sicurezza lato server
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error("Utente non autenticato")
+  }
+
+  const { error } = await supabase.from("setlist_songs").insert([
+    {
+      setlist_id: formData.setlistId,
+      song_id: formData.songId,
+      position: formData.position,
+      transpose: 0,
+      capo: 0,
+      is_simplified: false,
+    },
+  ])
+
+  if (error) {
+    console.error("Errore durante l'insert:", error)
+    throw new Error(error.message)
+  }
+
+  return { success: true }
+}
+
+// 1. Elimina un brano dalla setlist
+export async function removeSongFromSetlist(setlistId: string, songId: string) {
+  const supabase = await createClient()
+
+  const { error } = await supabase
+    .from("setlist_songs")
+    .delete()
+    .eq("setlist_id", setlistId)
+    .eq("song_id", songId)
+
+  if (error) {
+    console.error("Errore eliminazione brano:", error)
+    throw new Error(error.message)
+  }
+
+  revalidatePath(`/setlists/${setlistId}`)
+}
+
+// 2. Aggiorna l'ordine delle posizioni sul DB
+export async function updateSongsOrder(
+  setlistId: string,
+  updatedSongs: { song_id: string; position: number }[]
+) {
+  const supabase = await createClient()
+
+  // Eseguiamo un update per ogni singolo brano modificato
+  // (Nota: Per ottimizzare al massimo si potrebbe usare una RPC, ma per scalette live
+  // standard di 15-30 brani, le promesse parallele sono immediate)
+  const updates = updatedSongs.map((song) =>
+    supabase
+      .from("setlist_songs")
+      .update({ position: song.position })
+      .eq("setlist_id", setlistId)
+      .eq("song_id", song.song_id)
+  )
+
+  const results = await Promise.all(updates)
+  const firstError = results.find((r) => r.error)
+
+  if (firstError) {
+    console.error("Errore durante il riordinamento:", firstError.error)
+    throw new Error("Impossibile salvare il nuovo ordine.")
+  }
+
+  revalidatePath(`/setlists/${setlistId}`)
 }
