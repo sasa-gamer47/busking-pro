@@ -125,3 +125,27 @@ export function simplifyChord(chord: string): string {
   // Altrimenti restituisce semplicemente la nota fondamentale (accordo maggiore)
   return rootNote;
 }
+
+
+export function formatChordNotation(chord: string, notation: string): string {
+  if (notation !== "italian" || !chord) return chord
+
+  const notationMap: Record<string, string> = {
+    C: "Do",
+    D: "Re",
+    E: "Mi",
+    F: "Fa",
+    G: "Sol",
+    A: "La",
+    B: "Si",
+  }
+
+  const root = chord.charAt(0).toUpperCase()
+  const rest = chord.slice(1)
+
+  if (notationMap[root]) {
+    return notationMap[root] + rest
+  }
+
+  return chord
+}

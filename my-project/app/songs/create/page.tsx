@@ -32,6 +32,10 @@ export default function CreateSongPage() {
   const [bpm, setBpm] = useState<number>(90);
   const [capo, setCapo] = useState<number>(0);
   const [originalKey, setOriginalKey] = useState("C");
+  
+  // Nuovi stati separati per la durata
+  const [durationMinutes, setDurationMinutes] = useState<number>(0);
+  const [durationSeconds, setDurationSeconds] = useState<number>(0);
 
   // Stato iniziale dell'editor
   const [sections, setSections] = useState<Section[]>([
@@ -148,9 +152,11 @@ export default function CreateSongPage() {
       return;
     }
 
+    // Conversione dei minuti e secondi in un unico valore intero in secondi
+    const totalDurationInSeconds = (durationMinutes * 60) + durationSeconds;
+
     // Costruzione della struttura JSON coerente con il visualizzatore funzionante
     const lyricsStructure = sections.map((sec) => {
-      // Es: "STROFA 1" -> "strofa", "RITORNELLO 2" -> "ritornello"
       const rawType = sec.label.split(" ")[0].toLowerCase();
 
       return {
@@ -159,9 +165,8 @@ export default function CreateSongPage() {
         lines: sec.lines.map((l) => ({
           segments: l.segments.map((seg) => ({
             text: seg.text,
-            // Se l'accordo è vuoto salva null, altrimenti mantiene la stringa dell'accordo
             chord: seg.chord.trim() === "" ? null : seg.chord.trim(),
-          })),
+           })),
         })),
       };
     });
@@ -173,8 +178,8 @@ export default function CreateSongPage() {
         artist,
         bpm,
         original_key: originalKey,
-        content: lyricsStructure, // Struttura JSON corretta salvata nella colonna content
-        duration: 0,
+        content: lyricsStructure,
+        duration: totalDurationInSeconds, // Salvataggio del valore calcolato in secondi
       },
     ]);
 
@@ -201,22 +206,22 @@ export default function CreateSongPage() {
           <div className="flex gap-3">
             <button
               onClick={() => router.back()}
-              className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-xl font-medium transition text-sm"
+              className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-xl font-medium transition text-sm cursor-pointer"
             >
               Annulla
             </button>
             <button
               onClick={handleSave}
               disabled={isSubmitting}
-              className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-800 text-black font-bold rounded-xl transition text-sm"
+              className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-800 text-black font-bold rounded-xl transition text-sm cursor-pointer"
             >
               {isSubmitting ? "Salvataggio..." : "Salva Brano"}
             </button>
           </div>
         </div>
 
-        {/* SEZIONE METADATI */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+        {/* SEZIONE METADATI (Aggiornata a md:grid-cols-6) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Titolo</label>
             <input
@@ -256,7 +261,7 @@ export default function CreateSongPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Tonalità Originale</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Tonalità</label>
             <input
               type="text"
               value={originalKey}
@@ -264,6 +269,37 @@ export default function CreateSongPage() {
               placeholder="Es. G"
               className="w-full bg-zinc-950 border border-zinc-800 focus:border-orange-500 rounded-xl px-4 py-2.5 text-white focus:outline-none transition text-sm"
             />
+          </div>
+          
+          {/* Nuovo box di Input per la durata diviso in Minuti e Secondi */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Durata</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min="0"
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(Math.max(0, parseInt(e.target.value) || 0))}
+                placeholder="Min"
+                title="Minuti"
+                className="w-1/2 bg-zinc-950 border border-zinc-800 focus:border-orange-500 rounded-xl px-3 py-2.5 text-white focus:outline-none transition text-sm text-center font-mono"
+              />
+              <input
+                type="number"
+                min="0"
+                max="59"
+                value={durationSeconds}
+                onChange={(e) => {
+                  let val = parseInt(e.target.value) || 0;
+                  if (val > 59) val = 59;
+                  if (val < 0) val = 0;
+                  setDurationSeconds(val);
+                }}
+                placeholder="Sec"
+                title="Secondi"
+                className="w-1/2 bg-zinc-950 border border-zinc-800 focus:border-orange-500 rounded-xl px-3 py-2.5 text-white focus:outline-none transition text-sm text-center font-mono"
+              />
+            </div>
           </div>
         </div>
 
@@ -274,7 +310,7 @@ export default function CreateSongPage() {
             <button
               key={type}
               onClick={() => addSection(type)}
-              className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded-lg text-xs font-semibold transition"
+              className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 rounded-lg text-xs font-semibold transition cursor-pointer"
             >
               + {type}
             </button>
@@ -292,7 +328,7 @@ export default function CreateSongPage() {
                 </span>
                 <button
                   onClick={() => removeSection(section.id)}
-                  className="text-xs font-bold text-red-400 hover:text-red-300 transition"
+                  className="text-xs font-bold text-red-400 hover:text-red-300 transition cursor-pointer"
                 >
                   Rimuovi Sezione
                 </button>
@@ -304,7 +340,7 @@ export default function CreateSongPage() {
                     
                     <button
                       onClick={() => removeLine(section.id, line.id)}
-                      className="absolute top-2 right-2 text-zinc-600 hover:text-red-400 text-xs transition"
+                      className="absolute top-2 right-2 text-zinc-600 hover:text-red-400 text-xs transition cursor-pointer"
                       title="Elimina riga"
                     >
                       ✕
@@ -338,7 +374,7 @@ export default function CreateSongPage() {
 
                       <button
                         onClick={() => addSegment(section.id, line.id)}
-                        className="h-8 w-8 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white rounded-lg flex items-center justify-center text-sm font-bold transition mb-1"
+                        className="h-8 w-8 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white rounded-lg flex items-center justify-center text-sm font-bold transition mb-1 cursor-pointer"
                       >
                         +
                       </button>
@@ -349,7 +385,7 @@ export default function CreateSongPage() {
 
               <button
                 onClick={() => addLine(section.id)}
-                className="w-full py-2 bg-zinc-950/60 hover:bg-zinc-950 border border-dashed border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-300 text-xs font-semibold rounded-xl transition"
+                className="w-full py-2 bg-zinc-950/60 hover:bg-zinc-950 border border-dashed border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-300 text-xs font-semibold rounded-xl transition cursor-pointer"
               >
                 + Aggiungi Riga a {section.label}
               </button>

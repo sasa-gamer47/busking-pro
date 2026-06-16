@@ -1,135 +1,135 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import React from 'react'
-import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 import UserIcon from '@/imgs/user-icon.png'
 import SidebarSetlist from './SidebarSetlist'
 import SidebarSong from './SidebarSong'
+import SidebarSearch from './SidebarSearch'
 
-import { createClient } from "@/lib/utils/supabase/server" // Il client server per leggere i cookie
+import { createClient } from "@/lib/utils/supabase/server"
 import { Button } from "@/components/ui/button"
-import { LogOut } from "lucide-react"
+import { LogOut, Music, ListMusic } from "lucide-react"
 import Link from "next/link"
 import { redirect } from "next/navigation"
 import { getRecentSetlists, getRecentSongs } from '@/lib/utils/actions';
-import { Setlist } from '@/lib/utils/supabase/types';
-
+import { Song } from '@/lib/utils/supabase/types';
 
 const Sidebar = async () => {
+  const supabase = await createClient()
+  const response = await (supabase.auth as any).getUser()
+  const user = response.data?.user
 
-  const supabase = await createClient();
-
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // Se l'utente è loggato, andiamo a prendere il suo profilo reale dal database
   let profile = null
-  // console.log("USer: ", user)
-
   if (user) {
-  // Modifica la query inserendo anche la variabile 'error'
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", user.id)
-    .single()
-
-  if (error) {
-    // Questo ti dirà ESATTAMENTE perché il profilo è null nel terminale di VS Code
-    console.error("❌ Errore durante il fetch del profilo:", error.message, error.details)
-  } else {
-    profile = data
-    // console.log("✅ Profilo recuperato con successo:", profile)
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single()
+    if (!error) profile = data
   }
-}
 
   const handleLogout = async () => {
-    "use server" // Forza questa funzione a girare solo sul server quando clicchi il tasto
-    console.log("logging gout")
+    "use server"
     const supabase = await createClient()
-    await supabase.auth.signOut() // Cancella la sessione e i cookie del browser
-    redirect("/login") // Rimanda l'utente alla pagina di login
+    await supabase.auth.signOut()
+    redirect("/login")
   }
 
-   const recentSongs = await getRecentSongs(4)
-   const recentSetlists = await getRecentSetlists(4)
+  // Prende fino a 10 elementi ciascuno sfruttando tutto lo spazio di scorrimento verticale
+  const recentSongs = await getRecentSongs(10)
+  const recentSetlists = await getRecentSetlists(10)
 
   return (
-    <div className="fixed bg-zinc-950 text-gray-400 w-1/5 h-full z-50 shadow-lg">
-        <div className=" bg-zinc-800 absolute right-0 w-0.5 h-full"></div>
-
-      <div className="w-full text-4xl font-bold flex justify-center items-center py-4 h-20  absolute top-0">
-        <Link href="/" className='cursor-pointer'>
+    <div className="fixed left-0 top-0 w-1/5 h-screen bg-zinc-950 text-gray-400 flex flex-col z-50 shadow-lg border-r border-zinc-800 select-none">
+      
+      {/* Intestazione Applicazione */}
+      <div className="w-full h-20 flex justify-center items-center shrink-0 border-b border-zinc-900">
+        <Link href="/" className="text-3xl font-black tracking-wider text-white hover:text-orange-500 transition cursor-pointer">
           BUSKING PRO
         </Link>
       </div>
-      <div className="w-full flex justify-center items-start py-3  absolute top-20">
-          <Input placeholder='Search your songs...' className='w-5/6 outline-none bg-zinc-900 px-6 py-6  border-none' />
-      </div>
-      <div className=" w-full flex justify-centre items-center flex-col absolute top-40 bottom-20">
-        <div className="flex flex-col w-full max-h-fit px-4 h-1/2">
-          <p className='text-gray-500 font-semibold text-lg'>Le mie scalette</p>
-          <div className="w-full flex flex-col justify-center items-center overflow-y-auto overflow-x-hidden">
-            {recentSetlists.map((setlist: Setlist, index: number) => (
-              <SidebarSetlist key={index}  id={setlist.id} title={setlist.title} />
-            ))}                   
-          </div>
-        </div>
-        <div className="flex w-full max-h-fit flex-col justify-center  px-4 h-1/2">
-          <p className='text-gray-500 font-semibold text-lg'>Le mie canzoni</p>
-          <div className="flex flex-col items-center justify-center w-full  overflow-y-auto">
-            {recentSongs.map((song, index) => (
-              <SidebarSong key={index} id={song.id} title={song.title} artist={song.artist} />
-            ))} 
-          </div>
-        </div>
-      </div>
-    <div className="absolute bottom-20 bg-zinc-800 h-0.5 w-full"></div>
-      {/* 1. Il contenitore principale in fondo ha ora un'altezza definita (h-20) */}
-      <div className="absolute bottom-0 w-full h-20 px-4 flex justify-start items-center border-t border-zinc-800">
+
+      {/* Input di Ricerca Dedicato */}
+      <SidebarSearch />
+
+      {/* Contenitore Dinamico Principale (Prende l'altezza totale rimanente) */}
+      <div className="flex-1 w-full flex flex-col overflow-hidden px-4 pb-4 gap-y-2">
         
-        {/* 2. Questo div contiene l'avatar e i testi affiancati */}
-        <div className="w-full h-full flex items-center">
-          
-          {/* 3. Il contenitore dell'immagine: relative + h-2/3 (proporzionato al padre) + aspect-square */}
+        {/* Sezione Scalette */}
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex items-center justify-between py-2 shrink-0">
+            <p className="text-zinc-500 font-bold text-xs tracking-wider uppercase">Le mie scalette</p>
+            <Link href="/setlists" className="text-xs text-orange-500 font-semibold hover:underline flex items-center gap-x-1 cursor-pointer">
+              <ListMusic size={14} />
+              Vedi tutte
+            </Link>
+          </div>
+          <div className="w-full flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+            {recentSetlists && recentSetlists.length > 0 ? (
+              recentSetlists.map((setlist: any, index: number) => (
+                <SidebarSetlist key={index} id={setlist.id} title={setlist.title} />
+              ))
+            ) : (
+              <p className="text-xs text-zinc-600 italic py-2">Nessuna scaletta creata</p>
+            )}
+          </div>
+        </div>
+
+        {/* Sezione Canzoni */}
+        <div className="flex flex-col flex-1 min-h-0">
+          <div className="flex items-center justify-between py-2 shrink-0">
+            <p className="text-zinc-500 font-bold text-xs tracking-wider uppercase">Le mie canzoni</p>
+            <Link href="/songs" className="text-xs text-orange-500 font-semibold hover:underline flex items-center gap-x-1 cursor-pointer">
+              <Music size={14} />
+              Vedi tutte
+            </Link>
+          </div>
+          <div className="w-full flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+            {recentSongs && recentSongs.length > 0 ? (
+              recentSongs.map((song: any, index: number) => (
+                <SidebarSong key={index} id={song.id} title={song.title} artist={song.artist || ""} />
+              ))
+            ) : (
+              <p className="text-xs text-zinc-600 italic py-2">Nessun brano salvato</p>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Footer Utente o Tasto Login */}
+      <div className="w-full h-20 px-4 flex items-center border-t border-zinc-900 bg-zinc-950 shrink-0">
+        <div className="w-full flex items-center justify-between">
           {user && profile ? (
             <>
-              <div className="relative h-2/3 aspect-square">
-                <Image 
-                  src={UserIcon} 
-                  alt="user icon" 
-                  fill 
-                  className="rounded-full object-cover" 
-                />
+              <div className="flex items-center gap-x-3 overflow-hidden flex-1">
+                <div className="relative h-10 w-10 shrink-0">
+                  <Image src={UserIcon} alt="user icon" fill className="rounded-full object-cover border border-zinc-800" />
+                </div>
+                <div className="flex flex-col overflow-hidden text-left">
+                  <p className="text-sm font-semibold text-zinc-200 leading-tight truncate">{profile.full_name}</p>
+                  <p className="text-xs text-zinc-500 truncate">@{profile.username}</p>
+                </div>
               </div>
-              <div className="pl-4 flex flex-col min-w-2/4 justify-center items-start">
-                <p className="text-sm font-medium text-white leading-none mb-1">{profile.full_name}</p>
-                <p className="text-xs text-zinc-400 leading-none">@{profile.username}</p>
-              </div>
-              <div className="h-full flex items-center justify-center pl-4">
-                <Button onClick={handleLogout} className='bg-transparent p-2 cursor-pointer transition duration-300 hover:bg-zinc-900'>
-                  <LogOut size={50} strokeWidth={3} /> 
-                </Button>
-              </div>
+              <Button onClick={handleLogout} variant="ghost" size="icon" className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 cursor-pointer h-9 w-9 rounded-lg shrink-0 transition ml-2">
+                <LogOut size={18} /> 
+              </Button>
             </>
-          )
-          :
-          (
-            <>
-              <Link href="/login">
-                <Button className='p-4 ml-20 transition duration-300 hover:bg-orange-500 cursor-pointer bg-orange-600 text-xl font-bold w-2/3 h-2/3'>Login</Button>
-              </Link>
-            </>
-          )
-        }
-
+          ) : (
+            <Link href="/login" className="w-full">
+              <Button className="w-full py-5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl transition">
+                Accedi / Login
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
+
     </div>
   )
 }
 
 export default Sidebar
-
-

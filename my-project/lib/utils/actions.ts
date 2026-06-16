@@ -515,3 +515,130 @@ export async function updateSongsOrder(
 
   revalidatePath(`/setlists/${setlistId}`)
 }
+
+export async function getAllUserSongs() {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data: songs, error } = await supabase
+    .from("songs")
+    .select("id, title, artist, original_key, duration, bpm")
+    .eq("user_id", user.id)
+    .order("title", { ascending: true })
+
+  if (error) {
+    console.error("Errore nel recupero di tutte le canzoni:", error)
+    return []
+  }
+
+  return songs || []
+}
+
+export async function getAllUserSetlists() {
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  // Recupera le scalette ordinate dalla più recente alla più vecchia
+  const { data: setlists, error } = await supabase
+    .from("setlists")
+    .select("id, title, description, created_at")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error("Errore nel recupero delle scalette:", error)
+    return []
+  }
+
+  return setlists || []
+}
+
+export async function createSetlist(formData: { title: string; description: string }) {
+  const supabase = await createClient()
+
+  // Controllo autenticazione
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error("Utente non autenticato")
+  }
+
+  // Inserimento della nuova scaletta
+  const { data, error } = await supabase
+    .from("setlists")
+    .insert([
+      {
+        user_id: user.id,
+        title: formData.title,
+        description: formData.description,
+      },
+    ])
+    .select("id")
+    .single()
+
+  if (error) {
+    console.error("Errore durante la creazione della setlist:", error)
+    throw new Error(error.message)
+  }
+
+  return data // Ritorna l'oggetto contenente l'id appena generato
+}
+
+
+export async function getUserSettings() {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return null
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("chord_notation, default_font_size, default_scroll_speed")
+    .eq("id", user.id)
+    .maybeSingle() // Evita di lanciare eccezioni se la riga non esiste ancora
+
+  // Se c'è un errore di database reale o se il profilo non esiste ancora, ritorniamo i fallback
+  if (error || !data) {
+    return {
+      chord_notation: "english",
+      default_font_size: "md",
+      default_scroll_speed: 5,
+    }
+  }
+
+  return {
+    chord_notation: data.chord_notation,
+    default_font_size: data.default_font_size,
+    default_scroll_speed: data.default_scroll_speed,
+  }
+}
+
+export async function updateUserSettings(settings: {
+  chord_notation: string
+  default_font_size: string
+  default_scroll_speed: number
+}) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { success: false, error: "Utente non autenticato" }
+
+  // Usiamo upsert inserendo l'id: se esiste aggiorna, altrimenti crea la riga
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({
+      id: user.id, 
+      chord_notation: settings.chord_notation,
+      default_font_size: settings.default_font_size,
+      default_scroll_speed: settings.default_scroll_speed,
+    })
+
+  if (error) {
+    console.error("Errore nel salvataggio impostazioni:", error)
+    return { success: false, error: error.message }
+  }
+
+  revalidatePath("/settings")
+  return { success: true }
+}

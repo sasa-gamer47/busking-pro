@@ -1,66 +1,102 @@
 "use client";
 
 import { RefObject } from "react";
-import { SongSection, SongLine, SongSegment } from "@/lib/utils/supabase/types";
-import { transposeChord, simplifyChord } from "@/lib/utils";
+import { transposeChord, simplifyChord, formatChordNotation } from "@/lib/utils";
+
+interface ChordSegment {
+  chord?: string;
+  text: string;
+}
+
+interface SongLine {
+  segments: ChordSegment[];
+}
+
+interface SongSection {
+  type?: string;
+  label?: string;
+  lines: SongLine[];
+}
 
 interface SongLyricsAreaProps {
   scrollContainerRef: RefObject<HTMLElement | null>;
-  content: SongSection[] | undefined;
+  content: SongSection[];
   transpose: number;
   simplify: boolean;
+  fontSize: string;
+  notation: string;
 }
+
+// Mappatura esplicita delle dimensioni per costringere sia l'accordo che il testo a scalare insieme
+const chordSizeMap: Record<string, string> = {
+  sm: "text-xs h-5",
+  md: "text-sm h-6",
+  lg: "text-base h-7",
+  xl: "text-lg h-8",
+};
+
+const lyricSizeMap: Record<string, string> = {
+  sm: "text-sm min-h-[1.25rem]",
+  md: "text-base min-h-[1.5rem]",
+  lg: "text-lg min-h-[1.75rem]",
+  xl: "text-xl min-h-[2rem]",
+};
 
 export default function SongLyricsArea({
   scrollContainerRef,
   content,
   transpose,
   simplify,
+  fontSize,
+  notation,
 }: SongLyricsAreaProps) {
+  
+  const chordClass = chordSizeMap[fontSize] || chordSizeMap.md;
+  const lyricClass = lyricSizeMap[fontSize] || lyricSizeMap.md;
+
   return (
     <main
       ref={scrollContainerRef}
-      className="col-start-1 col-end-2 row-start-2 row-end-3 overflow-y-auto p-8 bg-zinc-950/40 scroll-smooth"
+      className="overflow-y-auto p-8 font-mono bg-zinc-950/20 select-none scrollbar-thin"
     >
-      <div className="max-w-2xl mx-auto space-y-8 font-mono text-lg">
-        {content?.map((section, sectionIdx) => (
-          <div key={sectionIdx} className="space-y-6">
-            
-            <div className="flex items-center gap-4">
-              <span className="text-xs font-bold text-orange-500 uppercase tracking-widest bg-orange-500/5 px-2.5 py-1 rounded border border-orange-500/10">
-                {section.label || section.type}
-              </span>
-              <div className="h-1 flex-1 bg-zinc-900" />
-            </div>
+      <div className="max-w-3xl mx-auto space-y-8 pb-20">
+        {content?.map((section, sIdx) => (
+          <div key={sIdx} className="border-l-2 border-zinc-800 pl-4 space-y-4">
+            {section.label && (
+              <div className="text-xs font-bold uppercase tracking-wider text-orange-500/80">
+                {section.label}
+              </div>
+            )}
+            <div className="space-y-6">
+              {section.lines?.map((line, lIdx) => (
+                <div key={lIdx} className="flex flex-wrap row-gap-4 leading-none">
+                  {line.segments?.map((seg, segIdx) => {
+                    let finalChord = "";
+                    
+                    if (seg.chord) {
+                      finalChord = transposeChord(seg.chord, transpose);
+                      if (simplify) {
+                        finalChord = simplifyChord(finalChord);
+                      }
+                      finalChord = formatChordNotation(finalChord, notation);
+                    }
 
-            <div className="space-y-4">
-              {section.lines?.map((line, lineIdx) => (
-                <div key={lineIdx} className="flex flex-wrap items-end pb-2 leading-none">
-                  {line.segments?.map((segment, segmentIdx) => (
-                    <div key={segmentIdx} className="flex flex-col items-start min-w-fit">
-                      
-                      {/* Riga Accordi */}
-                      <span className="h-6 font-mono text-base font-bold text-orange-400 tracking-wide pr-1 select-none">
-                        {segment.chord ? (
-                          simplify
-                            ? simplifyChord(transposeChord(segment.chord, transpose))
-                            : transposeChord(segment.chord, transpose)
-                        ) : (
-                          "\u00A0"
-                        )}
-                      </span>
-
-                      {/* Riga Testo */}
-                      <span className="font-sans text-xl text-zinc-200 tracking-normal whitespace-pre">
-                        {segment.text}
-                      </span>
-
-                    </div>
-                  ))}
+                    return (
+                      <div key={segIdx} className="flex flex-col min-w-[0.25rem] mr-1 mb-2">
+                        {/* Dimensione Accordo forzata dal database settings */}
+                        <span className={`${chordClass} text-orange-400 font-bold block whitespace-nowrap`}>
+                          {finalChord || "\u00A0"}
+                        </span>
+                        {/* Dimensione Testo Canzone forzata dal database settings */}
+                        <span className={`${lyricClass} text-zinc-200 whitespace-pre`}>
+                          {seg.text || "\u00A0"}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
-
           </div>
         ))}
       </div>
