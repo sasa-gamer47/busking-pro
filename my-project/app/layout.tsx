@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-// 1. Importa i font da next/font/google
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
 
-// 2. Inizializzali configurando i sottoinsiemi (subsets) e le variabili CSS
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -30,15 +28,19 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      {/* Pulito il body: rimosso flex-row e ripristinato lo sfondo zinc-950 lineare */}
+      <body className="h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans relative">
+        
+        {/* La Sidebar si autogestisce al 100%: fixed su PC (20%) e overlay a scorrimento su mobile */}
         <Sidebar />
-        <main className="">
+
+        {/* Il main torna a occupare tutto lo schermo (w-full). 
+            In questo modo, i distanziatori che hai già dentro le pagine riempiranno perfettamente quel vuoto */}
+        <main className="w-full h-full relative overflow-hidden">
           {children}
         </main>
-       </body>
+
+      </body>
     </html>
   );
 }
-
-
-// MLRFmaZmKeUGEq8W

@@ -152,10 +152,8 @@ export default function CreateSongPage() {
       return;
     }
 
-    // Conversione dei minuti e secondi in un unico valore intero in secondi
     const totalDurationInSeconds = (durationMinutes * 60) + durationSeconds;
 
-    // Costruzione della struttura JSON coerente con il visualizzatore funzionante
     const lyricsStructure = sections.map((sec) => {
       const rawType = sec.label.split(" ")[0].toLowerCase();
 
@@ -166,7 +164,7 @@ export default function CreateSongPage() {
           segments: l.segments.map((seg) => ({
             text: seg.text,
             chord: seg.chord.trim() === "" ? null : seg.chord.trim(),
-           })),
+          })),
         })),
       };
     });
@@ -179,7 +177,7 @@ export default function CreateSongPage() {
         bpm,
         original_key: originalKey,
         content: lyricsStructure,
-        duration: totalDurationInSeconds, // Salvataggio del valore calcolato in secondi
+        duration: totalDurationInSeconds,
       },
     ]);
 
@@ -194,16 +192,17 @@ export default function CreateSongPage() {
   };
 
   return (
-    <div className="h-screen bg-zinc-950 text-zinc-100 p-8 font-sans fixed left-[20%] right-0 overflow-y-auto">
+    // FIX LAYOUT & RESPONSIVE SCROLL: Adattamento fluido 100% su mobile e 80% su desktop con scorrimento corretto
+    <div className="absolute inset-y-0 left-0 lg:left-1/5 w-full lg:w-4/5 bg-zinc-950 text-zinc-100 h-full overflow-y-auto px-4 py-6 sm:p-8 font-sans">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* HEADER DELLA PAGINA */}
-        <div className="flex justify-between items-center border-b border-zinc-800 pb-5">
+        {/* HEADER DELLA PAGINA - Diventa colonna su mobile per non schiacciare i bottoni */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-y-4 border-b border-zinc-800 pb-5">
           <div>
-            <h1 className="text-3xl font-black tracking-tight text-white">CREA NUOVO BRANO</h1>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">CREA NUOVO BRANO</h1>
             <p className="text-zinc-400 text-sm mt-1">Inserisci i metadati e componi lo spartito a blocchi.</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 w-full sm:w-auto justify-end">
             <button
               onClick={() => router.back()}
               className="px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-xl font-medium transition text-sm cursor-pointer"
@@ -220,8 +219,8 @@ export default function CreateSongPage() {
           </div>
         </div>
 
-        {/* SEZIONE METADATI (Aggiornata a md:grid-cols-6) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-4 bg-zinc-900 p-5 rounded-2xl border border-zinc-800">
+        {/* SEZIONE METADATI - Ottimizzata la griglia per i vari break-point */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 bg-zinc-900 p-4 sm:p-5 rounded-2xl border border-zinc-800">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Titolo</label>
             <input
@@ -271,7 +270,6 @@ export default function CreateSongPage() {
             />
           </div>
           
-          {/* Nuovo box di Input per la durata diviso in Minuti e Secondi */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-2">Durata</label>
             <div className="flex gap-2">
@@ -320,7 +318,7 @@ export default function CreateSongPage() {
         {/* COMPOSIZIONE DINAMICA */}
         <div className="space-y-6">
           {sections.map((section) => (
-            <div key={section.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-4">
+            <div key={section.id} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 space-y-4">
               
               <div className="flex justify-between items-center border-b border-zinc-800 pb-3">
                 <span className="text-sm font-black tracking-wide text-orange-400 bg-orange-500/10 px-3 py-1 rounded-md">
@@ -346,9 +344,10 @@ export default function CreateSongPage() {
                       ✕
                     </button>
 
-                    <div className="flex flex-wrap gap-x-2 gap-y-4 items-end pr-6">
+                    {/* I segmenti ora fluttuano e si distribuiscono intelligentemente su mobile senza uscire dallo schermo */}
+                    <div className="flex flex-wrap gap-x-3 gap-y-4 items-end pr-6">
                       {line.segments.map((segment, sIdx) => (
-                        <div key={sIdx} className="flex flex-col w-32 min-w-[8rem] space-y-1">
+                        <div key={sIdx} className="flex flex-col w-[calc(50%-6px)] sm:w-32 min-w-[7.5rem] space-y-1">
                           
                           <input
                             type="text"

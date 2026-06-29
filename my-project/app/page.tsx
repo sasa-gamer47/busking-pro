@@ -2,78 +2,72 @@ import DetailsPanel from "@/components/DetailsPanel";
 import HomeStatCard from "@/components/HomeStatCard";
 import SetlistCard from "@/components/SetlistCard";
 import Topbar from "@/components/Topbar";
-// import { Card } from "@/components/ui/card";
-// import { Checkbox } from "@/components/ui/checkbox"
-// import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
-// import ChecklistItem from "@/components/CheckListItem";
 import CheckListPanel from "@/components/CheckListPanel";
 import { getDashboardStats, getRecentSetlists } from "@/lib/utils/actions"
 import { Setlist } from "@/lib/utils/supabase/types";
 import AddChecklistForm from "@/components/AddChecklistForm";
 
 export default async function Home() {
-
   const stats = await getDashboardStats()
-  // const recentSongs = await getRecentSongs(3)
   const recentSetlists = await getRecentSetlists(2)
 
-  console.log(recentSetlists)
-
-
   return (
-    <div className="fixed w-full left-1/5 h-full bg-zinc-900">
-      <div className="flex h-full w-full relative justify-start items-center">
-        <div className="w-3/5 h-full">
-          <div className="flex flex-col w-full h-full relative">
-            <Topbar />
-            <div className=" bg-zinc-800 h-0.5 w-full"></div>
+    // Responsive root: 100% di larghezza su mobile, si sposta a sinistra (lg:left-[20%]) e si restringe solo su schermi grandi
+    <div className="fixed inset-y-0 left-0 lg:left-[20%] w-full lg:w-[80%] h-full bg-zinc-900 text-gray-300">
+      <div className="flex h-full w-full relative justify-start items-stretch">
+        
+        {/* SEZIONE CENTRALE: Prende tutto lo spazio su mobile, lascia 1/4 al DetailsPanel su desktop */}
+        <div className="w-full lg:w-3/4 h-full flex flex-col relative border-zinc-800 lg:border-r">
+          <Topbar />
+          <div className="bg-zinc-800 h-0.5 w-full shrink-0"></div>
 
-            <div className="relative w-full h-full flex flex-col text-gray-300">
-              <div className="flex w-full h-auto gap-x-4 p-4 justify-start items-center">
-                <HomeStatCard title={"Canzoni totali"} value={stats.songsCount.toString()} />
-                <HomeStatCard title={"Scalette totali"} value={stats.setlistsCount.toString()} />
-              </div>         
+          {/* Area interna scrollabile per le card e le liste */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
             
-              <div className="w-full h-full flex">
-                <div className="w-1/2 h-full flex flex-col justify-center items-center p-4">
-                  <div className="w-full flex justify-between items-center">
-                    <h2 className="text-2xl font-bold">Scalette recenti</h2>
-                    <p className="text-orange-600 font-semibold text-lg transition duration-150 hover:text-orange-500 cursor-pointer">Vedi tutto</p>
-                  </div>
-                  <div className="w-full h-full flex flex-col gap-y-4 justify-start items-baseline mt-4">
-                    {recentSetlists.map((setlist: Setlist, index: number) => (
-                      <SetlistCard key={index} setlist={setlist} />
-                    ))}
-                  </div>
-
+            {/* STATS CARD: 1 colonna su mobile, 2 colonne da tablet in su */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+              <HomeStatCard title={"Canzoni totali"} value={stats.songsCount.toString()} />
+              <HomeStatCard title={"Scalette totali"} value={stats.setlistsCount.toString()} />
+            </div>         
+          
+            {/* CONTENUTI OPERATIVI: Incolonnati su mobile, affiancati da tablet (md:) in su */}
+            <div className="w-full flex flex-col md:flex-row gap-6 items-start">
+              
+              {/* Scalette Recenti */}
+              <div className="w-full md:w-1/2 flex flex-col space-y-4">
+                <div className="w-full flex justify-between items-center">
+                  <h2 className="text-xl sm:text-2xl font-bold">Scalette recenti</h2>
+                  <p className="text-orange-600 font-semibold text-sm transition duration-150 hover:text-orange-500 cursor-pointer">Vedi tutto</p>
                 </div>
-                <div className="w-1/2 h-full p-4">
-                  <div className="w-full flex justify-between items-center">
-                    <h2 className="text-2xl font-bold">Live Checklist</h2>
-                    <AddChecklistForm />
-                    {/* <p className="text-orange-600 font-semibold text-lg transition duration-150 hover:text-orange-500 cursor-pointer">
-                      <Plus size={35} strokeWidth={3} />
-                    </p> */}
-                  </div>
-                  <div className="w-full h-full flex flex-col gap-y-4 justify-start items-baseline mt-4">
-                    <CheckListPanel />
-                  </div>
+                <div className="w-full flex flex-col gap-y-4">
+                  {recentSetlists.map((setlist: Setlist, index: number) => (
+                    <SetlistCard key={index} setlist={setlist} />
+                  ))}
                 </div>
               </div>
-            
+
+              {/* Live Checklist */}
+              <div className="w-full md:w-1/2 flex flex-col space-y-4">
+                <div className="w-full flex justify-between items-center">
+                  <h2 className="text-xl sm:text-2xl font-bold">Live Checklist</h2>
+                  <AddChecklistForm />
+                </div>
+                <div className="w-full flex flex-col gap-y-4">
+                  <CheckListPanel />
+                </div>
+              </div>
+
             </div>
+          
           </div>
-        
         </div>
-        <div className="w-1/5 h-full">
+
+        {/* PANNELLO DETTAGLI DESTRO: Completamente nascosto su mobile, riappare su desktop */}
+        <div className="hidden lg:block lg:w-1/4 h-full bg-zinc-950/20">
           <DetailsPanel />
         </div>
 
-
       </div>
-      {/* fixed voerlay modals */}
-
-
     </div>
   );
 }

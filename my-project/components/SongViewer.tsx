@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Song } from "@/lib/utils/supabase/types";
 import { transposeChord, simplifyChord, formatChordNotation } from "@/lib/utils";
 import { createClient } from "@/lib/utils/supabase/client";
@@ -11,6 +11,7 @@ import SongSidebar from "@/components/SongSidebar";
 
 interface SongViewerProps {
   song: Song;
+  setlistId?: string;
   initialTranspose?: number;
   initialSimplify?: boolean;
   backUrl: string;
@@ -27,6 +28,7 @@ interface SongViewerProps {
 
 export default function SongViewer({
   song,
+  setlistId,
   initialTranspose = 0,
   initialSimplify = false,
   backUrl,
@@ -40,37 +42,33 @@ export default function SongViewer({
     default_scroll_speed: 5,
   },
 }: SongViewerProps) {
-  // Stati di controllo della visualizzazione (Transposizione, scorrimento, ecc.)
   const [prevSongId, setPrevSongId] = useState(song.id);
   const [transpose, setTranspose] = useState(initialTranspose);
   const [simplify, setSimplify] = useState(initialSimplify);
   const [scrollSpeed, setScrollSpeed] = useState(settings.default_scroll_speed);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  // Reset degli stati di navigazione al cambio di brano
   if (song.id !== prevSongId) {
     setPrevSongId(song.id);
     setTranspose(initialTranspose);
     setSimplify(initialSimplify);
     setScrollSpeed(settings.default_scroll_speed);
     setIsScrolling(false);
+    setIsSidebarOpen(false);
   }
   
   const scrollContainerRef = useRef<HTMLElement>(null);
 
-  // --- STATI LOCALI DEL SETUP LIVE ---
   const [liveBpm, setLiveBpm] = useState<number>(song.bpm ?? 120);
   const [liveKey, setLiveKey] = useState<string>(song.original_key ?? "C");
   const [liveCapo, setLiveCapo] = useState<number>(0);
   const [liveTuning, setLiveTuning] = useState<string>("Standard (E A D G B E)");
 
-  // --- REPERIMENTO DATI DAL DB ONLOAD / CAMBIO BRANO ---
   useEffect(() => {
     const fetchLiveSetupData = async () => {
       const supabase = createClient();
-
       try {
-        // 1. Legge le info principali del brano
         const { data: songData, error: songError } = await supabase
           .from("songs")
           .select("bpm, original_key, tuning")
@@ -85,47 +83,42 @@ export default function SongViewer({
           setLiveTuning(songData.tuning ?? "Standard (E A D G B E)");
         }
 
-        // 2. Legge il capotasto dalla tabella pivot di collegamento
-        const { data: linkData, error: linkError } = await supabase
+        const query = supabase
           .from("setlist_songs")
           .select("capo")
-          .eq("song_id", song.id)
-          .maybeSingle();
+          .eq("song_id", song.id);
+          
+        if (setlistId) query.eq("setlist_id", setlistId);
+
+        const { data: linkData, error: linkError } = await query.maybeSingle();
 
         if (!linkError && linkData) {
           setLiveCapo(linkData.capo ?? 0);
         } else {
           setLiveCapo(0); 
         }
-
       } catch (err) {
         console.error("Errore nel caricamento del Setup Live:", err);
       }
     };
 
     fetchLiveSetupData();
-  }, [song.id]);
+  }, [song.id, setlistId]);
 
   const handlePreferenceUpdate = (newTranspose: number, newSimplify: boolean) => {
     setTranspose(newTranspose);
     setSimplify(newSimplify);
-    if (onPreferenceChange) {
-      onPreferenceChange(newTranspose, newSimplify);
-    }
+    if (onPreferenceChange) onPreferenceChange(newTranspose, newSimplify);
   };
 
-  // --- SALVATAGGIO ASINCRONO SU SUPABASE ---
   const handleLiveSetupUpdate = async (updatedData: { bpm: number; currentKey: string; capo: number; tuning: string }) => {
-    // Aggiornamento ottimista UI per azzerare la latenza visiva
     setLiveBpm(updatedData.bpm);
     setLiveKey(updatedData.currentKey);
     setLiveCapo(updatedData.capo);
     setLiveTuning(updatedData.tuning);
 
     const supabase = createClient();
-
     try {
-      // 1. Aggiorna i metadati globali del brano
       const { error: songError } = await supabase
         .from("songs")
         .update({
@@ -135,46 +128,42 @@ export default function SongViewer({
         })
         .eq("id", song.id);
 
-      if (songError) {
-        throw new Error(`Errore Tabella Canzoni: ${songError.message}`);
-      }
+      if (songError) throw new Error(`Errore Tabella Canzoni: ${songError.message}`);
 
-      // 2. Aggiorna il valore locale del capotasto nella scaletta
-      const { error: linkError } = await supabase
+      const linkQuery = supabase
         .from("setlist_songs")
         .update({ capo: updatedData.capo })
         .eq("song_id", song.id);
-      
-      if (linkError) {
-        console.warn("Nessun record setlist_songs trovato da aggiornare per questa song_id.");
-      }
+
+      if (setlistId) linkQuery.eq("setlist_id", setlistId);
+      const { error: linkError } = await linkQuery;
+      if (linkError) console.warn("Nessun record in setlist_songs trovato da aggiornare.");
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Errore sconosciuto";
-      console.error("Errore Database:", errorMessage);
-      alert("Impossibile salvare i dati: " + errorMessage);
+      console.error("Errore Database:", error instanceof Error ? error.message : error);
     }
   };
 
-  // Estrazione e mappatura degli accordi unici della traccia
-  const uniqueChords = Array.from(
-    new Set(
-      song.content?.flatMap((section) =>
-        section.lines?.flatMap((line) =>
-          line.segments
-            ?.map((seg) => seg.chord)
-            .filter((chord): chord is string => !!chord)
-            .map((chord) => {
-              const processed = simplify
-                ? simplifyChord(transposeChord(chord, transpose))
-                : transposeChord(chord, transpose);
-              return formatChordNotation(processed, settings.chord_notation);
-            })
+  const uniqueChords = useMemo(() => {
+    if (!song.content) return [];
+    return Array.from(
+      new Set(
+        song.content.flatMap((section) =>
+          section.lines?.flatMap((line) =>
+            line.segments
+              ?.map((seg) => seg.chord)
+              .filter((chord): chord is string => !!chord)
+              .map((chord) => {
+                const processed = simplify
+                  ? simplifyChord(transposeChord(chord, transpose))
+                  : transposeChord(chord, transpose);
+                return formatChordNotation(processed, settings.chord_notation);
+              })
+          )
         )
       )
-    )
-  );
+    );
+  }, [song.content, transpose, simplify, settings.chord_notation]);
 
-  // Motore di Autoscroll
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
     if (isScrolling) {
@@ -188,7 +177,11 @@ export default function SongViewer({
   }, [isScrolling, scrollSpeed]);
 
   return (
-    <div className="grid h-screen fixed left-[20%] right-0 grid-cols-[1fr_270px] grid-rows-[60px_1fr_80px] bg-zinc-900 text-zinc-300 overflow-hidden">
+    /* FIX ALTEZZE RIGIDE:
+       Definiamo esplicitamente le righe: Header (60px), Testo (1fr), Player (75px su mobile, 80px su tablet/PC).
+       Il box principale occupa l'intera altezza senza sbordare e senza comprimersi.
+    */
+    <div className="grid h-screen fixed left-0 lg:left-[20%] right-0 grid-cols-1 lg:grid-cols-[1fr_270px] grid-rows-[60px_1fr_75px] sm:grid-rows-[60px_1fr_80px] bg-zinc-950 text-zinc-300 overflow-hidden w-full lg:w-auto">
       
       <SongHeader 
         backUrl={backUrl} 
@@ -199,38 +192,69 @@ export default function SongViewer({
         capo={liveCapo}
         tuning={liveTuning}
         onUpdate={handleLiveSetupUpdate}
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
-      <SongLyricsArea
-        scrollContainerRef={scrollContainerRef}
-        content={song.content}
-        transpose={transpose}
-        simplify={simplify}
-        fontSize={settings.default_font_size}
-        notation={settings.chord_notation}
-      />
+      {/* CENTRO SINISTRA: Area Testo */}
+      <div className="col-start-1 col-end-2 row-start-2 row-end-3 overflow-hidden h-full w-full">
+        <SongLyricsArea
+          scrollContainerRef={scrollContainerRef}
+          content={song.content}
+          transpose={transpose}
+          simplify={simplify}
+          fontSize={settings.default_font_size}
+          notation={settings.chord_notation}
+        />
+      </div>
 
-      <SongControls
-        isScrolling={isScrolling}
-        setIsScrolling={setIsScrolling}
-        scrollSpeed={scrollSpeed}
-        setScrollSpeed={setScrollSpeed}
-        transpose={transpose}
-        simplify={simplify}
-        adjacentSongs={adjacentSongs}
-        songId={song.id}
-        showNavigation={showNavigation}
-        onPreferenceChange={handlePreferenceUpdate}
-        onNavigate={onNavigate}
-      />
+      {/* CENTRO DESTRA: Sidebar PC */}
+      <div className="hidden lg:block lg:col-start-2 lg:col-end-3 lg:row-start-2 lg:row-end-3 border-l border-zinc-900/80 h-full w-full overflow-hidden">
+        <SongSidebar
+          originalKey={formatChordNotation(liveKey || "N/A", settings.chord_notation)}
+          bpm={liveBpm || 92}
+          uniqueChords={uniqueChords}
+          capo={liveCapo}
+          tuning={liveTuning}
+          isOpen={isSidebarOpen}
+        />
+      </div>
 
-      <SongSidebar
-        originalKey={formatChordNotation(liveKey || "N/A", settings.chord_notation)}
-        bpm={liveBpm || 92}
-        uniqueChords={uniqueChords}
-        capo={liveCapo}
-        tuning={liveTuning}
-      />
+      {/* BOTTOM BAR: Controlli ancorati all'ultima riga */}
+      {/* BOTTOM BAR: Controlli ancorati all'ultima riga */}
+      <div className="col-start-1 col-end-2 lg:col-end-3 row-start-3 row-end-4 bg-zinc-950 w-full h-full border-t border-zinc-900/80 overflow-hidden flex">
+        <SongControls
+          isScrolling={isScrolling}
+          setIsScrolling={setIsScrolling}
+          scrollSpeed={scrollSpeed}
+          setScrollSpeed={setScrollSpeed}
+          transpose={transpose}
+          simplify={simplify}
+          adjacentSongs={adjacentSongs}
+          songId={song.id}
+          setlistId={setlistId}
+          showNavigation={showNavigation}
+          onPreferenceChange={handlePreferenceUpdate}
+          onNavigate={onNavigate}
+  />
+</div>
+
+      {/* Sidebar Mobile/Tablet */}
+      {isSidebarOpen && (
+        <div className="lg:hidden">
+          <div 
+            className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+          <SongSidebar
+            originalKey={formatChordNotation(liveKey || "N/A", settings.chord_notation)}
+            bpm={liveBpm || 92}
+            uniqueChords={uniqueChords}
+            capo={liveCapo}
+            tuning={liveTuning}
+            isOpen={isSidebarOpen}
+          />
+        </div>
+      )}
 
     </div>
   );

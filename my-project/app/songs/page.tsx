@@ -9,7 +9,7 @@ export default async function SongsPage() {
   const songs = await getAllUserSongs()
 
   return (
-    <main className="absolute min-h-screen w-4/5 left-1/5 bg-zinc-900 text-zinc-300">
+    <main className="absolute min-h-screen w-full lg:w-4/5 left-0 lg:left-1/5 bg-zinc-900 text-zinc-300">
       <Topbar />
       <div className="bg-zinc-800 h-0.5 w-full"></div>
       

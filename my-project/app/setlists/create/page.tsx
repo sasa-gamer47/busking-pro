@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Music, Save } from "lucide-react"
+import { ArrowLeft, Save } from "lucide-react"
 import Link from "next/link"
 import Topbar from "@/components/Topbar"
 import { Input } from "@/components/ui/input"
@@ -26,10 +26,7 @@ export default function CreateSetlistPage() {
 
     startTransition(async () => {
       try {
-        // Esecuzione della Server Action
         const newSetlist = await createSetlist({ title, description })
-        
-        // Reindirizzamento immediato alla pagina di dettaglio della nuova scaletta
         router.push(`/setlists/${newSetlist.id}`)
         router.refresh()
       } catch (err) {
@@ -39,12 +36,15 @@ export default function CreateSetlistPage() {
   }
 
   return (
-    <main className="absolute min-h-screen w-4/5 left-1/5 bg-zinc-900 text-zinc-300">
+    // FIX SCROLL: Sostituito min-h-screen con h-full + overflow-y-auto per sbloccare lo scorrimento all'interno del layout
+    <div className="absolute inset-y-0 left-0 lg:left-1/5 w-full lg:w-4/5 bg-zinc-900 text-zinc-300 h-full overflow-y-auto">
       {/* Topbar comune */}
       <Topbar />
       <div className="bg-zinc-800 h-0.5 w-full"></div>
 
-      <div className="w-full max-w-3xl mx-auto p-10 flex flex-col gap-y-6">
+      {/* FIX LARGHEZZA: Sostituito p-10 fisso con px-4 py-6 per i telefoni, ripristinando sm:p-10 su schermi grandi */}
+      <div className="w-full max-w-3xl mx-auto px-4 py-6 sm:p-10 flex flex-col gap-y-6">
+        
         {/* Pulsante Torna Indietro */}
         <div className="flex items-center w-full">
           <Link href="/setlists" className="text-sm font-medium text-zinc-400 hover:text-white flex items-center gap-x-2 transition">
@@ -55,7 +55,7 @@ export default function CreateSetlistPage() {
 
         {/* Intestazione */}
         <div className="text-left w-full">
-          <h2 className="text-3xl font-extrabold text-zinc-100 tracking-tight">Crea Nuova Scaletta</h2>
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-100 tracking-tight">Crea Nuova Scaletta</h2>
           <p className="text-zinc-400 text-sm mt-1">
             Inserisci un titolo e una descrizione. Potrai aggiungere e ordinare i brani subito dopo averla creata.
           </p>
@@ -63,8 +63,9 @@ export default function CreateSetlistPage() {
 
         <div className="bg-zinc-800 h-0.5 w-full"></div>
 
-        {/* Form di Inserimento */}
-        <form onSubmit={handleSubmit} className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-8 flex flex-col gap-y-6 shadow-xl mt-2">
+        {/* Form di Inserimento - Ottimizzato il padding interno per mobile (p-5) */}
+        <form onSubmit={handleSubmit} className="w-full bg-zinc-950 border-2 border-zinc-800 rounded-2xl p-5 sm:p-8 flex flex-col gap-y-6 shadow-xl mt-2">
+          
           {/* Campo Titolo */}
           <div className="flex flex-col gap-y-2 text-left">
             <label htmlFor="title" className="text-zinc-300 font-semibold text-sm tracking-wide">
@@ -101,7 +102,7 @@ export default function CreateSetlistPage() {
           <div className="bg-zinc-900 h-px w-full my-2"></div>
 
           {/* Pulsanti di Azione */}
-          <div className="flex items-center justify-end gap-x-4">
+          <div className="flex items-center justify-end gap-x-2 lg:gap-x-4 w-full">
             <Link href="/setlists">
               <Button
                 type="button"
@@ -116,7 +117,7 @@ export default function CreateSetlistPage() {
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-6 py-5 rounded-xl transition duration-200 hover:-translate-y-0.5 cursor-pointer text-base shadow-lg shadow-orange-600/10"
+              className="bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 lg:px-6 py-2 lg:py-5  rounded-xl transition duration-200 hover:-translate-y-0.5 cursor-pointer text-base shadow-lg shadow-orange-600/10"
             >
               <Save className="mr-2 h-5 w-5" />
               {isPending ? "Salvataggio..." : "Crea Scaletta"}
@@ -124,7 +125,6 @@ export default function CreateSetlistPage() {
           </div>
         </form>
       </div>
-    </main>
+    </div>
   )
 }
-
