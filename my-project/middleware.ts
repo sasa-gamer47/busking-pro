@@ -10,11 +10,18 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   /*
-   * Il matcher ora deve ascoltare esplicitamente la Home e la pagina di login.
-   * Usiamo questo array preciso per evitare che intercetti file di sistema o API interne.
+   * Il matcher ora intercetta TUTTI i percorsi dell'applicazione,
+   * garantendo che la sessione Supabase sia sempre aggiornata,
+   * ma esclude intelligentemente i file statici e di sistema per non sprecare risorse.
    */
   matcher: [
-    '/',
-    '/login'
+    /*
+     * Esclude i percorsi che iniziano con:
+     * - _next/static (file CSS e JS compilati)
+     * - _next/image (immagini ottimizzate da Next)
+     * - favicon.ico (l'icona del sito)
+     * Esclude anche tutti i file con estensioni statiche (immagini, vettori, ecc.)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
