@@ -1,48 +1,20 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { type NextRequest } from 'next/server'
+// Importazione con percorso relativo esatto e isolato, senza usare la chiocciola @
+import { updateSession } from './lib/utils/supabase/middleware'
 
-export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+export async function middleware(request: NextRequest) {
+  // Spia di controllo nel terminale locale
+  console.log("👮 BUTTAFUORI: Sto controllando il percorso:", request.nextUrl.pathname)
+  
+  return await updateSession(request)
+}
 
-  // ATTENZIONE: Inizializziamo il client direttamente qui.
-  // NON importare un file 'supabaseClient' esterno che potrebbe contenere moduli Node.
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  // Refresh sicuro del token di sessione
-  const { data: { user } } = await supabase.auth.getUser()
-
-  // Se l'utente non è loggato e sta provando ad andare sulla Home '/', 
-  // lo rimandiamo al login senza passare da altri file di utility esterni
-  if (!user && request.nextUrl.pathname === '/') {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-  }
-
-  return response
+export const config = {
+  matcher: [
+    /*
+     * Intercetta tutte le rotte per aggiornare la sessione di Supabase,
+     * escludendo i file statici, immagini e icone per ottimizzare le performance.
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }
