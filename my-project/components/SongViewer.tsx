@@ -220,7 +220,6 @@ export default function SongViewer({
       </div>
 
       {/* BOTTOM BAR: Controlli ancorati all'ultima riga */}
-      {/* BOTTOM BAR: Controlli ancorati all'ultima riga */}
       <div className="col-start-1 col-end-2 lg:col-end-3 row-start-3 row-end-4 bg-zinc-950 w-full h-full border-t border-zinc-900/80 overflow-hidden flex">
         <SongControls
           isScrolling={isScrolling}
@@ -235,8 +234,8 @@ export default function SongViewer({
           showNavigation={showNavigation}
           onPreferenceChange={handlePreferenceUpdate}
           onNavigate={onNavigate}
-  />
-</div>
+        />
+      </div>
 
       {/* Sidebar Mobile/Tablet */}
       {isSidebarOpen && (

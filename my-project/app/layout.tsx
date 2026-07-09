@@ -29,14 +29,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       {/* Pulito il body: rimosso flex-row e ripristinato lo sfondo zinc-950 lineare */}
-      <body className="h-screen w-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans relative">
-        
-        {/* La Sidebar si autogestisce al 100%: fixed su PC (20%) e overlay a scorrimento su mobile */}
+      <body className="h-screen w-screen bg-zinc-950 text-zinc-100 overflow-x-hidden font-sans relative">
+  
         <Sidebar />
 
-        {/* Il main torna a occupare tutto lo schermo (w-full). 
-            In questo modo, i distanziatori che hai già dentro le pagine riempiranno perfettamente quel vuoto */}
-        <main className="w-full h-full relative overflow-hidden">
+        <main className="w-full h-full relative overflow-x-hidden overflow-y-auto">
           {children}
         </main>
 

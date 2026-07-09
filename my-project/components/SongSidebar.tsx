@@ -22,9 +22,9 @@ export default function SongSidebar({
        Aggiunto 'lg:row-start-2 lg:row-end-3 lg:col-start-2 lg:col-end-3' 
        per bloccarla perfettamente nello spazio centrale destro senza scendere nel player.
     */
-    <aside className={`fixed top-0 right-0 h-full w-[260px] sm:w-[270px] z-50 bg-zinc-950 p-5 sm:p-6 space-y-6 overflow-y-auto border-l border-zinc-900 transition-transform duration-300 ease-in-out lg:static lg:row-start-2 lg:row-end-3 lg:col-start-2 lg:col-end-3 lg:h-full lg:w-full lg:z-10 lg:translate-x-0 lg:border-l lg:border-zinc-900/80 ${
-      isOpen ? "translate-x-0 shadow-2xl" : "translate-x-full"
-    }`}>
+    <aside className={`fixed top-0 right-0 h-full w-[260px] sm:w-[270px] z-50 bg-zinc-950 p-5 sm:p-6 space-y-6 overflow-y-auto border-l border-zinc-900 transition-transform duration-300 ease-in-out lg:static lg:h-full lg:w-full lg:z-10 lg:translate-x-0 lg:border-l lg:border-zinc-900/80 ${
+  isOpen ? "translate-x-0 shadow-2xl" : "translate-x-full"
+}`}>
       
       {/* DETTAGLI BRANO */}
       <div className="space-y-3">
