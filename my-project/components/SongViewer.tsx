@@ -199,7 +199,7 @@ export default function SongViewer({
       <div className="col-start-1 col-end-2 row-start-2 row-end-3 overflow-hidden h-full w-full">
         <SongLyricsArea
           scrollContainerRef={scrollContainerRef}
-          content={song.content}
+          content={song.content || undefined}
           transpose={transpose}
           simplify={simplify}
           fontSize={settings.default_font_size}

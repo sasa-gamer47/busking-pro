@@ -4,7 +4,7 @@ import { RefObject } from "react";
 import { transposeChord, simplifyChord, formatChordNotation } from "@/lib/utils";
 
 interface ChordSegment {
-  chord?: string;
+  chord?: string | null;
   text: string;
 }
 
