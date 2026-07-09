@@ -54,10 +54,10 @@ export default function SongLyricsArea({
 
   return (
     <main
-      ref={scrollContainerRef}
-      // RESPONSIVE: padding dinamico (p-4 per mobile, p-8 per schermi grandi)
-      className="overflow-y-auto p-4 sm:p-8 font-mono bg-zinc-950/20 select-none scrollbar-thin"
-    >
+        ref={scrollContainerRef}
+        // AGGIUNTO: h-screen per bloccare l'altezza e attivare overflow-y-auto
+        className="h-screen overflow-y-auto p-4 sm:p-8 font-mono bg-zinc-950/20 select-none scrollbar-thin"
+      >
       <div className="max-w-3xl mx-auto space-y-8 pb-20">
         {content?.map((section, sIdx) => (
           <div key={sIdx} className="border-l-2 border-zinc-800 pl-3 sm:pl-4 space-y-4">
