@@ -6,7 +6,7 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
-  // Configurazione del client con le tue chiavi
+  // Inizializzazione diretta senza utility esterne
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
@@ -28,20 +28,14 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Controlliamo l'utente in modo sicuro
   const { data: { user } } = await supabase.auth.getUser()
-
   const url = request.nextUrl.clone()
 
-  // SE L'UTENTE NON È LOGGATO
-  // Se non c'è una sessione e l'utente sta provando ad accedere alla Home (/) 
   if (!user && url.pathname === '/') {
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // SE L'UTENTE È GIÀ LOGGATO
-  // Se l'utente ha già una sessione attiva ma prova a tornare su /login, lo rimandiamo alla Home (/)
   if (user && url.pathname === '/login') {
     url.pathname = '/'
     return NextResponse.redirect(url)
