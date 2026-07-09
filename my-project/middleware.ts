@@ -1,27 +1,48 @@
-import { type NextRequest } from 'next/server'
-import { updateSession } from '@/lib/utils/supabase/middleware'
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  // Spia di controllo nel terminale per vedere se Next.js sta leggendo il file
-  console.log("👮 BUTTAFUORI: Sto controllando il percorso:", request.nextUrl.pathname)
-  
-  return await updateSession(request)
-}
+export async function updateSession(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
 
-export const config = {
-  /*
-   * Il matcher ora intercetta TUTTI i percorsi dell'applicazione,
-   * garantendo che la sessione Supabase sia sempre aggiornata,
-   * ma esclude intelligentemente i file statici e di sistema per non sprecare risorse.
-   */
-  matcher: [
-    /*
-     * Esclude i percorsi che iniziano con:
-     * - _next/static (file CSS e JS compilati)
-     * - _next/image (immagini ottimizzate da Next)
-     * - favicon.ico (l'icona del sito)
-     * Esclude anche tutti i file con estensioni statiche (immagini, vettori, ecc.)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  // ATTENZIONE: Inizializziamo il client direttamente qui.
+  // NON importare un file 'supabaseClient' esterno che potrebbe contenere moduli Node.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  // Refresh sicuro del token di sessione
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Se l'utente non è loggato e sta provando ad andare sulla Home '/', 
+  // lo rimandiamo al login senza passare da altri file di utility esterni
+  if (!user && request.nextUrl.pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
+  return response
 }
